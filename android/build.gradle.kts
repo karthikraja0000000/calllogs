@@ -1,9 +1,26 @@
+buildscript {
+    // Update Kotlin version to be more compatible with recent libraries
+    val kotlin_version = "1.8.10"  // Newer version
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+        // Update Gradle plugin to a more recent version
+        classpath("com.android.tools.build:gradle:7.3.0") // or newer if available
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
 }
+
 
 val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
 rootProject.layout.buildDirectory.value(newBuildDir)

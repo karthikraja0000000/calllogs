@@ -1,7 +1,14 @@
+import 'dart:async';
+import 'package:call_logs/blocs/call_log_bloc.dart';
+import 'package:call_logs/model/call_logs_model.dart';
+import 'package:call_logs/repositories/call_log_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,134 +18,93 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<Map<String, String>> callLogs = [
-    {
-      "name": "karthick",
-      "number": "1231234567",
-      "time": "12:13pm",
-      "Call type": "Received",
-      "Duration": "01:00 min",
-    },
-    {
-      "name": "unknown",
-      "number": "1231234567",
-      "time": "11:13pm",
-      "Call type": "Missed Call",
-      "Duration": "00:00 min",
-    },
-    {
-      "name": "karthick2",
-      "number": "1231234567",
-      "time": "11:03pm",
-      "Call type": "Outgoing Call",
-      "Duration": "01:06 min",
-    },
-    {
-      "name": "leo",
-      "number": "1231234567",
-      "time": "10:43pm",
-      "Call type": "Received",
-      "Duration": "00:30 min",
-    },
-    {
-      "name": "das",
-      "number": "1231234567",
-      "time": "09:53pm",
-      "Call type": "Rejected",
-      "Duration": "00:00 min",
-    },
-    {
-      "name": "spam",
-      "number": "1231234567",
-      "time": "06:14pm",
-      "Call type": "Missed Call",
-      "Duration": "00:00 min",
-    },
-    {
-      "name": "karthick3",
-      "number": "1231234567",
-      "time": "12:13Am",
-      "Call type": "Received",
-      "Duration": "05:30 min",
-    },
-    {
-      "name": "karthick4",
-      "number": "1231234567",
-      "time": "12:00Am",
-      "Call type": "Received",
-      "Duration": "01:55 min",
-    },
-    {
-      "name": "karthick4",
-      "number": "1231234567",
-      "time": "12:00Am",
-      "Call type": "Received",
-      "Duration": "01:55 min",
-    },
-    {
-      "name": "karthick",
-      "number": "1231234567",
-      "time": "12:13pm",
-      "Call type": "Received",
-      "Duration": "01:00 min",
-    },
-    {
-      "name": "unknown",
-      "number": "1231234567",
-      "time": "11:13pm",
-      "Call type": "Missed Call",
-      "Duration": "00:00 min",
-    },
-    {
-      "name": "karthick2",
-      "number": "1231234567",
-      "time": "11:03pm",
-      "Call type": "Outgoing Call",
-      "Duration": "01:06 min",
-    },
-    {
-      "name": "leo",
-      "number": "1231234567",
-      "time": "10:43pm",
-      "Call type": "Received",
-      "Duration": "00:30 min",
-    },
-    {
-      "name": "das",
-      "number": "1231234567",
-      "time": "09:53pm",
-      "Call type": "Rejected",
-      "Duration": "00:00 min",
-    },
-    {
-      "name": "spam",
-      "number": "1231234567",
-      "time": "06:14pm",
-      "Call type": "Missed Call",
-      "Duration": "00:00 min",
-    },
-    {
-      "name": "karthick3",
-      "number": "1231234567",
-      "time": "12:13Am",
-      "Call type": "Received",
-      "Duration": "05:30 min",
-    },
-    {
-      "name": "karthick4",
-      "number": "1231234567",
-      "time": "12:00Am",
-      "Call type": "Received",
-      "Duration": "01:55 min",
-    },
-    {
-      "name": "karthick4",
-      "number": "1231234567",
-      "time": "12:00Am",
-      "Call type": "Received",
-      "Duration": "01:55 min",
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    context.read<CallLogBloc>().add(GetCalllogs());
+    _automaticReload();
+    _syncCallLogs();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          elevation: 0,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          content: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black.withAlpha(10)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  offset: Offset(0, 7),
+                  blurRadius: 7,
+                ),
+              ],
+              borderRadius: BorderRadius.circular(12.r),
+              color: Colors.blueGrey,
+            ),
+            child: Center(
+              child: Text(
+                "Your call logs are syncing if you Don't want you cant stop it",
+                style: TextStyle(
+                  fontFamily: "source-sans-pro",
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _automaticReload() {
+    Timer.periodic(Duration(seconds: 60), (timer) async {
+      context.read<CallLogBloc>().add(GetCalllogs());
+    });
+  }
+
+  Future<void> _syncCallLogs() async {
+    try {
+      final repo = CallLogRepository();
+      final logs = await repo.getCallLogs();
+      final prefs = await SharedPreferences.getInstance();
+      final lastSentMills = prefs.getInt('last_sent_timestamp');
+      final lastSent =
+          lastSentMills != null
+              ? DateTime.fromMillisecondsSinceEpoch(lastSentMills)
+              : null;
+
+      for (var log in logs) {
+        if (lastSent == null || log.dateTime.isAfter(lastSent)) {
+          final success = await repo.sendCallLogsToApi(log);
+          if (success) {
+            await prefs.setInt(
+              'last_sent_timestamp',
+              log.dateTime.millisecondsSinceEpoch,
+            );
+            if (kDebugMode) {
+              print("BackgroundFetch: Sent log at ${log.dateTime}");
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Sync error: $e");
+      }
+    }
+  }
+
+  Future<void> _manualSync() async {
+    context.read<CallLogBloc>().add(GetCalllogs());
+  }
+
+  String formatedDate(String dateTime) {
+    final DateTime parsedDate = DateTime.parse(dateTime);
+    final DateFormat formatter = DateFormat('HH:mm:ss');
+    return formatter.format(parsedDate);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,16 +113,6 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.black12,
         appBar: AppBar(
           backgroundColor: Colors.white,
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SvgPicture.asset(
-              "assets/images/Back.svg",
-              height: 25.h,
-              width: 24.w,
-              colorFilter: ColorFilter.mode(Colors.white, BlendMode.darken),
-              // color: Colors.white,
-            ),
-          ),
           title: Text(
             'Calls',
             style: TextStyle(
@@ -165,64 +121,147 @@ class _HomePageState extends State<HomePage> {
               fontSize: 16.r,
             ),
           ),
+          actions: [
+            Text(
+              'StopSync',
+              style: TextStyle(
+                fontFamily: "source-sans-pro",
+                color: Colors.black,
+                fontSize: 12.r,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                FlutterBackgroundService().invoke("stopServices");
+              },
+              icon: Icon(Icons.sync_disabled),
+            ),
+          ],
         ),
 
-        body: ListView.builder(
-          itemCount: callLogs.length,
-          itemBuilder: (context, index) {
-            final log = callLogs[index];
-            return Card(
-              color: Colors.white,
-              elevation: 3,
-              child: ListTile(
-                leading: CircleAvatar(
-                  radius: 15.r,
+        body: RefreshIndicator(
+          onRefresh: _manualSync,
+          child: BlocConsumer<CallLogBloc, CallLogState>(
+            listener: (context, state) {
+              if (state is CallLogFailure) {
+                if (kDebugMode) {
+                  print(state.error);
+                }
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("something went wrong")));
+              }
+            },
+            builder: (context, state) {
+              if (state is CallLogLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is CallLogLoaded) {
+                final callLogs = state.callLogsModel;
+                return ListView.builder(
+                  itemCount: callLogs.length,
+                  itemBuilder: (context, index) {
+                    final log = callLogs[index];
+                    return Card(
+                      color: Colors.white,
+                      elevation: 3,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          radius: 18.r,
 
-                  child: Icon(_getCallIcon(log["Call type"]!),
-                    color: _getCallColor(log["Call type"]!),),
-                ),
-                title: Text(
-                  log["name"]!,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontFamily: "source-sans-pro",
-                    fontSize: 13.r,
+                          child: Icon(
+                            _getCallIcon(log.callType),
+                            color: _getCallColor(log.callType),
+                          ),
+                        ),
+                        title: Text(
+                          log.name.isNotEmpty ? log.name : "Unknown",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontFamily: "source-sans-pro",
+                            fontSize: 13.r,
+                          ),
+                        ),
+                        subtitle: Row(
+                          children: [
+                            Text(
+                              formatedDate(log.dateTime.toString()),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontFamily: "source-sans-pro",
+                                fontSize: 11.r,
+                              ),
+                            ),
+                            SizedBox(width: 7.w),
+                            Text(
+                              log.callType,
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontFamily: "source-sans-pro",
+                                fontSize: 11.r,
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          _showCalls(context, log);
+                        },
+                      ),
+                    );
+                  },
+                );
+              } else {
+                return Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        "No Available data",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontFamily: "source-sans-pro",
+                          fontSize: 13.r,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          context.read<CallLogBloc>().add(GetCalllogs());
+                        },
+                        child: Container(
+                          height: 40.h,
+                          width: 324.w,
+                          decoration: BoxDecoration(color: Colors.red),
+                          child: Text(
+                            'Reload',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontFamily: "source-sans-pro",
+                              fontSize: 13.r,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                subtitle: Row(
-                  children: [
-                    Text(
-                      log["time"]!,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontFamily: "source-sans-pro",
-                        fontSize: 11.r,
-                      ),
-                    ),
-                    SizedBox(width: 7.w),
-                    Text(
-                      log["Call type"]!,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontFamily: "source-sans-pro",
-                        fontSize: 11.r,
-                      ),
-                    ),
-                  ],
-                ),
-                onTap: () {
-                  _showCalls(context, log);
-                },
-              ),
-            );
-          },
+                );
+                // return Center(
+                //   child: CircularProgressIndicator(color: Colors.white),
+                // );
+              }
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-void _showCalls(BuildContext context, Map<String, String> log) {
+void _showCalls(BuildContext context, CallLogsModel log) {
+  String formatedDate(String dateTime) {
+    final DateTime parsedDate = DateTime.parse(dateTime);
+    final DateFormat formatter = DateFormat('HH:mm:ss');
+    return formatter.format(parsedDate);
+  }
+
   showModalBottomSheet(
     context: context,
     elevation: 0,
@@ -240,13 +279,9 @@ void _showCalls(BuildContext context, Map<String, String> log) {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // Padding(
-              //   padding: EdgeInsets.only(left: 289.w),
-              //   child: OutlinedButton(onPressed: (){Navigator.pop(context);}, child: Icon(Icons.clear)),
-              // ),
               SizedBox(height: 10.h),
               Text(
-                "Name: ${log['name']}",
+                "Name: ${log.name.isNotEmpty ? log.name : "Unknown"}",
                 style: TextStyle(
                   color: Colors.black,
                   fontFamily: "source-sans-pro",
@@ -255,7 +290,7 @@ void _showCalls(BuildContext context, Map<String, String> log) {
               ),
               SizedBox(height: 10.h),
               Text(
-                "Number: ${log['number']}",
+                "Number: ${log.phoneNumber}",
                 style: TextStyle(
                   color: Colors.black,
                   fontFamily: "source-sans-pro",
@@ -264,7 +299,7 @@ void _showCalls(BuildContext context, Map<String, String> log) {
               ),
               SizedBox(height: 10.h),
               Text(
-                "Call Type: ${log['Call type']}",
+                "Call Type: ${log.callType}",
                 style: TextStyle(
                   color: Colors.black,
                   fontFamily: "source-sans-pro",
@@ -273,7 +308,7 @@ void _showCalls(BuildContext context, Map<String, String> log) {
               ),
               SizedBox(height: 10.h),
               Text(
-                "Time: ${log['time']}",
+                "Time: ${formatedDate(log.dateTime.toString())}",
                 style: TextStyle(
                   color: Colors.black,
                   fontFamily: "source-sans-pro",
@@ -282,7 +317,7 @@ void _showCalls(BuildContext context, Map<String, String> log) {
               ),
               SizedBox(height: 10.h),
               Text(
-                "Duration: ${log['Duration']}",
+                "Duration: ${log.duration}",
                 style: TextStyle(
                   color: Colors.black,
                   fontFamily: "source-sans-pro",
@@ -318,31 +353,30 @@ void _showCalls(BuildContext context, Map<String, String> log) {
   );
 }
 
-
-IconData _getCallIcon(String? callType) {
+IconData _getCallIcon(String callType) {
   switch (callType) {
-    case "Missed Call":
+    case "missed":
       return Icons.call_missed;
-    case "Received":
+    case "received":
       return Icons.call_received;
-    case "Outgoing Call":
+    case "outgoing":
       return Icons.call_made;
-    case "Rejected":
+    case "rejected":
       return Icons.call_end;
     default:
       return Icons.phone;
   }
 }
 
-Color _getCallColor(String? callType) {
+Color _getCallColor(String callType) {
   switch (callType) {
-    case "Missed Call":
+    case "missed":
       return Colors.red;
-    case "Received":
+    case "received":
       return Colors.green;
-    case "Outgoing Call":
+    case "outgoing":
       return Colors.blue;
-    case "Rejected":
+    case "rejected":
       return Colors.orange;
     default:
       return Colors.black54;
