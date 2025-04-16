@@ -4,6 +4,7 @@ import 'package:call_logs/repositories/call_log_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:phone_state/phone_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> _syncCallLogs() async {
@@ -98,12 +99,26 @@ void onStart(ServiceInstance service) async {
       service.stopSelf();
     });
   }
-  await Future.delayed(const Duration(seconds: 20));
-  Timer.periodic(const Duration(seconds: 20), (timer) async {
-    await _syncCallLogs();
 
-    service.invoke('syncComplete');
+StreamSubscription<PhoneState> callStateSubscription;
+  callStateSubscription = PhoneState.stream.listen((state)async{
+    if (kDebugMode) {
+      print("Background call state: ${state.status}");
+    }
+    if (state.status == PhoneStateStatus.CALL_ENDED) {
+      await _syncCallLogs();
+      service.invoke('syncComplete');
+    }
   });
+
+  service.on('stopService').listen((event) {
+    callStateSubscription.cancel();
+    service.stopSelf();
+  });
+
+
+  // await Future.delayed(const Duration(seconds: 20));
+  // await _syncCallLogs();
 }
 
 @pragma('vm:entry-point')

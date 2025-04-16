@@ -6,6 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'backgroundtask.dart';
+
 
 Future<void> requestPermission() async{
   await Permission.phone.request();
@@ -18,9 +20,9 @@ Future<void> requestPermission() async{
 }
 
 Future<void> main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await requestPermission();
-  // await initializeService();
+  WidgetsFlutterBinding.ensureInitialized();
+  await requestPermission();
+  await initializeService();
   runApp(const MyApp());
 }
 
