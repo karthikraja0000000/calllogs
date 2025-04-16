@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:call_logs/blocs/call_log_bloc.dart';
 import 'package:call_logs/model/call_logs_model.dart';
 import 'package:call_logs/repositories/call_log_repository.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -18,11 +19,27 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
-    context.read<CallLogBloc>().add(GetCalllogs());
-    _automaticReload();
+    context.read<CallLogBloc>().add(GetInitialCalllogs());
+    // _scrollController.addListener(_onScroll);
+
+    // CallLogRepository()
+    //     .getCallLogs()
+    //     .then((logs) {
+    //       if (kDebugMode) {
+    //         print("Repo test - Logs: ${logs.length}");
+    //       }
+    //     })
+    //     .catchError((e) {
+    //       if (kDebugMode) {
+    //         print("Repo test - Error: $e");
+    //       }
+    //     });
+
     _syncCallLogs();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,7 +62,7 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Center(
               child: Text(
-                "Your call logs are syncing if you Don't want you cant stop it",
+                "Your call logs are syncing",
                 style: TextStyle(
                   fontFamily: "source-sans-pro",
                   color: Colors.black,
@@ -58,11 +75,34 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _automaticReload() {
-    Timer.periodic(Duration(seconds: 60), (timer) async {
-      context.read<CallLogBloc>().add(GetCalllogs());
-    });
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
+
+  // void _onScroll() {
+  //   if (_scrollController.position.extentAfter < 100 &&
+  //       !_isLoadingMore) {  // Add a flag to prevent multiple triggers
+  //
+  //     _isLoadingMore = true;  // Set flag to prevent multiple triggers
+  //
+  //     final state = context.read<CallLogBloc>().state;
+  //     if (state is CallLogLoaded && !state.hasReachedMax) {
+  //       if (kDebugMode) {
+  //         print("Fetching more call logs...");
+  //       }
+  //       context.read<CallLogBloc>().add(GetMoreCallLogs());
+  //
+  //       // Reset the flag after a small delay
+  //       Future.delayed(Duration(milliseconds: 300), () {
+  //         _isLoadingMore = false;
+  //       });
+  //     } else {
+  //       _isLoadingMore = false;  // Reset flag if not loading
+  //     }
+  //   }
+  // }
 
   Future<void> _syncCallLogs() async {
     try {
@@ -97,7 +137,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _manualSync() async {
-    context.read<CallLogBloc>().add(GetCalllogs());
+    context.read<CallLogBloc>().add(GetInitialCalllogs());
   }
 
   String formatedDate(String dateTime) {
@@ -154,13 +194,73 @@ class _HomePageState extends State<HomePage> {
               }
             },
             builder: (context, state) {
+              if (kDebugMode) {
+                print("HomePage rebuilt with state: $state");
+              }
               if (state is CallLogLoading) {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is CallLogLoaded) {
-                final callLogs = state.callLogsModel;
+                if (kDebugMode) {
+                  print("Loaded call logs: ${state.displayItems.length}");
+                }
+
+                final callLogs = state.displayItems;
+                final hasReachedMax = state.hasReachedMax;
+
+                if (kDebugMode) {
+                  print(
+                    "ListView builder: Loaded ${callLogs.length} logs, hasReachedMax: $hasReachedMax",
+                  );
+                }
+
+                if (callLogs.isEmpty) {
+                  return Center(child: Text("No call logs found"));
+                }
                 return ListView.builder(
-                  itemCount: callLogs.length,
+                  controller: _scrollController,
+                  itemCount: callLogs.length + (hasReachedMax ? 0 : 1),
+                  // itemCount: callLogs.length,
+
                   itemBuilder: (context, index) {
+                    // if (index >= callLogs.length) {
+                    //   // This is the loading indicator at the bottom
+                    //   return const Padding(
+                    //     padding: EdgeInsets.all(16.0),
+                    //     child: Center(child: CircularProgressIndicator()),
+                    //   );
+                    // }
+                    if (index >= callLogs.length) {
+                      return Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              context.read<CallLogBloc>().add(
+                                GetMoreCallLogs(),
+                              );
+                            },
+                            child: Container(
+                              width: 135.w,
+                              height: 32.h,
+                              decoration: BoxDecoration(
+                                color: CupertinoColors.white,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Load More',
+                                  style: TextStyle(
+                                    fontFamily: "source-sans-pro",
+                                    fontSize: 12.r,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     final log = callLogs[index];
                     return Card(
                       color: Colors.white,
@@ -224,7 +324,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          context.read<CallLogBloc>().add(GetCalllogs());
+                          context.read<CallLogBloc>().add(GetInitialCalllogs());
                         },
                         child: Container(
                           height: 40.h,

@@ -7,14 +7,19 @@ abstract class CallLogEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetCalllogs extends CallLogEvent{
+class GetInitialCalllogs extends CallLogEvent{}
 
-}
-class SendCallLogs extends CallLogEvent{
-final CallLogsModel callLogsModel;
+class GetMoreCallLogs extends CallLogEvent{}
 
-const SendCallLogs({required this.callLogsModel});
 
-@override
-List<Object> get props => [callLogsModel];
-}
+
+
+
+// class SendCallLogs extends CallLogEvent{
+// final CallLogsModel callLogsModel;
+//
+// const SendCallLogs({required this.callLogsModel});
+//
+// @override
+// List<Object> get props => [callLogsModel];
+// }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:call_logs/repositories/call_log_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -30,7 +29,7 @@ Future<void> _syncCallLogs() async {
             print("BackgroundFetch: Sent log at ${log.dateTime}");
           }
         }
-      }else{
+      } else {
         if (kDebugMode) {
           print("Background Fetch no new call data to send");
         }
@@ -44,20 +43,18 @@ Future<void> _syncCallLogs() async {
 }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 Future<void> initializeService() async {
   final services = FlutterBackgroundService();
 
   const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
   );
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-  );
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     "call_logs_sync",
@@ -68,8 +65,8 @@ Future<void> initializeService() async {
 
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin
-  >()
+        AndroidFlutterLocalNotificationsPlugin
+      >()
       ?.createNotificationChannel(channel);
 
   await services.configure(
@@ -93,18 +90,16 @@ void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
   if (service is AndroidServiceInstance) {
-
     await service.setForegroundNotificationInfo(
       title: "Call Logs Sync",
       content: 'Your call logs Syncing in background',
-
     );
     service.on('stopServices').listen((event) {
       service.stopSelf();
     });
   }
   await Future.delayed(const Duration(seconds: 20));
-  Timer.periodic(const Duration(minutes: 15), (timer) async {
+  Timer.periodic(const Duration(seconds: 20), (timer) async {
     await _syncCallLogs();
 
     service.invoke('syncComplete');
@@ -116,5 +111,3 @@ Future<bool> onIosBackground(ServiceInstance service) async {
   await _syncCallLogs();
   return true;
 }
-
-

@@ -1,4 +1,3 @@
-import 'package:call_logs/backgroundtask.dart';
 import 'package:call_logs/blocs/call_log_bloc.dart';
 import 'package:call_logs/home_page.dart';
 import 'package:call_logs/repositories/call_log_repository.dart';
@@ -19,9 +18,9 @@ Future<void> requestPermission() async{
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await requestPermission();
-  await initializeService();
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await requestPermission();
+  // await initializeService();
   runApp(const MyApp());
 }
 
