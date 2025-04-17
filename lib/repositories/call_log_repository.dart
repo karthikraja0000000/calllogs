@@ -44,6 +44,11 @@ class CallLogRepository {
     }
   }
 
+  Future<Iterable<CallLogsModel>> getCallLogsSince(DateTime since) async {
+    final allLogs = await getCallLogs();
+    return allLogs.where((log) => log.dateTime.isAfter(since));
+  }
+
   Future<bool> sendCallLogsToApi(CallLogsModel callLogs) async {
     try {
       return await apiService.createLeadFromCall(callLogs);

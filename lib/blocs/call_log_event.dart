@@ -7,11 +7,11 @@ abstract class CallLogEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetInitialCalllogs extends CallLogEvent{}
+class GetInitialCallLogs extends CallLogEvent{}
 
 class GetMoreCallLogs extends CallLogEvent{}
 
-
+class AddMoreCallLogs extends CallLogEvent{}
 
 
 

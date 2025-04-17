@@ -13,7 +13,7 @@ class CallLogBloc extends Bloc<CallLogEvent, CallLogState> {
   List<CallLogsModel> _allLogs = [];
 
   CallLogBloc({required this.repository}) : super(CallLogInitial()) {
-    on<GetInitialCalllogs>((event, emit) async {
+    on<GetInitialCallLogs>((event, emit) async {
       emit(CallLogLoading());
       try {
         _allLogs = (await repository.getCallLogs()).toList();
@@ -52,7 +52,8 @@ class CallLogBloc extends Bloc<CallLogEvent, CallLogState> {
           if (nextItems.isEmpty) {
             emit(
               CallLogLoaded(
-                hasReachedMax: true,
+                // hasReachedMax: true,
+                hasReachedMax: false,
                 displayItems: currentState.displayItems,
               ),
             );
@@ -82,6 +83,33 @@ class CallLogBloc extends Bloc<CallLogEvent, CallLogState> {
           if (kDebugMode) {
             print('Error loading more logs: $e');
           }
+        }
+      }
+    });
+
+    on<AddMoreCallLogs>((event, emit) async {
+      final currentState = state;
+      if (currentState is CallLogLoaded &&
+          currentState.displayItems.isNotEmpty) {
+        try {
+          final latestTimestamp = currentState.displayItems.first.dateTime;
+
+          final newCalls = await repository.getCallLogsSince(latestTimestamp);
+
+          if (newCalls.isNotEmpty) {
+            final updatedCallLogs = [...newCalls, ...currentState.displayItems];
+
+            emit(
+              CallLogLoaded(
+                hasReachedMax: false,
+                displayItems: updatedCallLogs,
+              ),
+            );
+          } else {
+            emit(currentState);
+          }
+        } catch (e) {
+          emit(CallLogFailure(error: "Error while refreshing call logs"));
         }
       }
     });

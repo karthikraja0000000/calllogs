@@ -9,6 +9,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:phone_state/phone_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,12 +20,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  StreamSubscription<PhoneState>? _callStateSubscription;
   // bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
+
+
   @override
   void initState() {
     super.initState();
-    context.read<CallLogBloc>().add(GetInitialCalllogs());
+    context.read<CallLogBloc>().add(GetInitialCallLogs());
     // _scrollController.addListener(_onScroll);
 
     // CallLogRepository()
@@ -41,6 +45,9 @@ class _HomePageState extends State<HomePage> {
     //     });
 
     _syncCallLogs();
+
+    _listenToCallState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -75,11 +82,26 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _listenToCallState() {
+    _callStateSubscription = PhoneState.stream.listen((state) async {
+      if (kDebugMode) {
+        print("Call state: ${state.status}");
+      }
+
+      if (state.status == PhoneStateStatus.CALL_ENDED) {
+        context.read<CallLogBloc>().add(AddMoreCallLogs());
+      }
+    });
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _callStateSubscription?.cancel();
     super.dispose();
   }
+
+
 
   // void _onScroll() {
   //   if (_scrollController.position.extentAfter < 100 &&
@@ -137,7 +159,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _manualSync() async {
-    context.read<CallLogBloc>().add(GetInitialCalllogs());
+    context.read<CallLogBloc>().add(AddMoreCallLogs());
   }
 
   String formatedDate(String dateTime) {
@@ -324,7 +346,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          context.read<CallLogBloc>().add(GetInitialCalllogs());
+                          context.read<CallLogBloc>().add(GetInitialCallLogs());
                         },
                         child: Container(
                           height: 40.h,

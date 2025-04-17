@@ -100,8 +100,8 @@ void onStart(ServiceInstance service) async {
     });
   }
 
-StreamSubscription<PhoneState> callStateSubscription;
-  callStateSubscription = PhoneState.stream.listen((state)async{
+  StreamSubscription<PhoneState> callStateSubscription;
+  callStateSubscription = PhoneState.stream.listen((state) async {
     if (kDebugMode) {
       print("Background call state: ${state.status}");
     }
@@ -115,7 +115,6 @@ StreamSubscription<PhoneState> callStateSubscription;
     callStateSubscription.cancel();
     service.stopSelf();
   });
-
 
   // await Future.delayed(const Duration(seconds: 20));
   // await _syncCallLogs();
