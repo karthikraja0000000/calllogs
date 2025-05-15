@@ -1,4 +1,3 @@
-import 'package:call_logs/backgroundtask.dart';
 import 'package:call_logs/blocs/call_log_bloc.dart';
 import 'package:call_logs/home_page.dart';
 import 'package:call_logs/repositories/call_log_repository.dart';
@@ -7,21 +6,31 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'backgroundtask.dart';
+
 
 Future<void> requestPermission() async{
-  await Permission.phone.request();
-  if(await Permission.ignoreBatteryOptimizations.isDenied){
-    await Permission.ignoreBatteryOptimizations.request();
-  }
-  if (await Permission.notification.isDenied) {
-    await Permission.notification.request();
+  try {
+    await Permission.phone.request();
+    if(await Permission.ignoreBatteryOptimizations.isDenied){
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    if (await Permission.notification.isDenied) {
+        await Permission.notification.request();
+      }
+  } catch (e) {
+    print(e);
   }
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await requestPermission();
-  await initializeService();
+  try {
+    await initializeService();
+  } catch (e) {
+    print(e);
+  }
   runApp(const MyApp());
 }
 

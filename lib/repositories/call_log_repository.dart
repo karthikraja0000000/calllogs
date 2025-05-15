@@ -14,19 +14,19 @@ class CallLogRepository {
         String callType;
         switch (entry.callType) {
           case CallType.rejected:
-            callType = 'rejected';
+            callType = 'Rejected';
             break;
           case CallType.incoming:
-            callType = 'incoming';
+            callType = 'Incoming';
             break;
           case CallType.outgoing:
-            callType = 'outgoing';
+            callType = 'Outgoing';
             break;
           case CallType.missed:
-            callType = 'missed';
+            callType = 'Missed';
             break;
           default:
-            callType = 'unknown';
+            callType = 'Unknown';
         }
         return CallLogsModel(
           phoneNumber: entry.number as String,
@@ -42,6 +42,11 @@ class CallLogRepository {
       }
       return [];
     }
+  }
+
+  Future<Iterable<CallLogsModel>> getCallLogsSince(DateTime since) async {
+    final allLogs = await getCallLogs();
+    return allLogs.where((log) => log.dateTime.isAfter(since));
   }
 
   Future<bool> sendCallLogsToApi(CallLogsModel callLogs) async {
