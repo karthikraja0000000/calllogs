@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:call_logs/blocs/call_log_bloc.dart';
 import 'package:call_logs/model/call_logs_model.dart';
 import 'package:call_logs/repositories/call_log_repository.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -21,7 +20,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   StreamSubscription<PhoneState>? _callStateSubscription;
-  // bool _isLoadingMore = false;
+  bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
 
 
@@ -29,7 +28,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<CallLogBloc>().add(GetInitialCallLogs());
-    // _scrollController.addListener(_onScroll);
+    _scrollController.addListener(_onScroll);
 
     // CallLogRepository()
     //     .getCallLogs()
@@ -89,6 +88,7 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (state.status == PhoneStateStatus.CALL_ENDED) {
+        if (!mounted) return;
         context.read<CallLogBloc>().add(AddMoreCallLogs());
       }
     });
@@ -103,28 +103,28 @@ class _HomePageState extends State<HomePage> {
 
 
 
-  // void _onScroll() {
-  //   if (_scrollController.position.extentAfter < 100 &&
-  //       !_isLoadingMore) {  // Add a flag to prevent multiple triggers
-  //
-  //     _isLoadingMore = true;  // Set flag to prevent multiple triggers
-  //
-  //     final state = context.read<CallLogBloc>().state;
-  //     if (state is CallLogLoaded && !state.hasReachedMax) {
-  //       if (kDebugMode) {
-  //         print("Fetching more call logs...");
-  //       }
-  //       context.read<CallLogBloc>().add(GetMoreCallLogs());
-  //
-  //       // Reset the flag after a small delay
-  //       Future.delayed(Duration(milliseconds: 300), () {
-  //         _isLoadingMore = false;
-  //       });
-  //     } else {
-  //       _isLoadingMore = false;  // Reset flag if not loading
-  //     }
-  //   }
-  // }
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 100 &&
+        !_isLoadingMore) {  // Add a flag to prevent multiple triggers
+
+      _isLoadingMore = true;  // Set flag to prevent multiple triggers
+
+      final state = context.read<CallLogBloc>().state;
+      if (state is CallLogLoaded && !state.hasReachedMax) {
+        if (kDebugMode) {
+          print("Fetching more call logs...");
+        }
+        context.read<CallLogBloc>().add(GetMoreCallLogs());
+
+        // Reset the flag after a small delay
+        Future.delayed(Duration(milliseconds: 300), () {
+          _isLoadingMore = false;
+        });
+      } else {
+        _isLoadingMore = false;  // Reset flag if not loading
+      }
+    }
+  }
 
   Future<void> _syncCallLogs() async {
     try {
@@ -244,45 +244,45 @@ class _HomePageState extends State<HomePage> {
                   // itemCount: callLogs.length,
 
                   itemBuilder: (context, index) {
-                    // if (index >= callLogs.length) {
-                    //   // This is the loading indicator at the bottom
-                    //   return const Padding(
-                    //     padding: EdgeInsets.all(16.0),
-                    //     child: Center(child: CircularProgressIndicator()),
-                    //   );
-                    // }
                     if (index >= callLogs.length) {
-                      return Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              context.read<CallLogBloc>().add(
-                                GetMoreCallLogs(),
-                              );
-                            },
-                            child: Container(
-                              width: 135.w,
-                              height: 32.h,
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.white,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Load More',
-                                  style: TextStyle(
-                                    fontFamily: "source-sans-pro",
-                                    fontSize: 12.r,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      // This is the loading indicator at the bottom
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: CircularProgressIndicator()),
                       );
                     }
+                    // if (index >= callLogs.length) {
+                    //   return Padding(
+                    //     padding: EdgeInsets.all(8.0),
+                    //     child: Center(
+                    //       child: GestureDetector(
+                    //         onTap: () {
+                    //           context.read<CallLogBloc>().add(
+                    //             GetMoreCallLogs(),
+                    //           );
+                    //         },
+                    //         child: Container(
+                    //           width: 135.w,
+                    //           height: 32.h,
+                    //           decoration: BoxDecoration(
+                    //             color: CupertinoColors.white,
+                    //           ),
+                    //           child: Center(
+                    //             child: Text(
+                    //               'Load More',
+                    //               style: TextStyle(
+                    //                 fontFamily: "source-sans-pro",
+                    //                 fontSize: 12.r,
+                    //                 color: Colors.black87,
+                    //                 fontWeight: FontWeight.w900,
+                    //               ),
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ),
+                    //   );
+                    // }
                     final log = callLogs[index];
                     return Card(
                       color: Colors.white,

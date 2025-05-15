@@ -81,6 +81,7 @@ Future<void> initializeService() async {
       initialNotificationTitle: "Call Logs Sync",
       initialNotificationContent: 'Your call logs Syncing in background',
       foregroundServiceNotificationId: 888,
+
     ),
   );
   await services.startService();

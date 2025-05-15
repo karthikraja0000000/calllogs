@@ -10,19 +10,27 @@ import 'backgroundtask.dart';
 
 
 Future<void> requestPermission() async{
-  await Permission.phone.request();
-  if(await Permission.ignoreBatteryOptimizations.isDenied){
-    await Permission.ignoreBatteryOptimizations.request();
-  }
-  if (await Permission.notification.isDenied) {
-    await Permission.notification.request();
+  try {
+    await Permission.phone.request();
+    if(await Permission.ignoreBatteryOptimizations.isDenied){
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    if (await Permission.notification.isDenied) {
+        await Permission.notification.request();
+      }
+  } catch (e) {
+    print(e);
   }
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await requestPermission();
-  await initializeService();
+  try {
+    await initializeService();
+  } catch (e) {
+    print(e);
+  }
   runApp(const MyApp());
 }
 
